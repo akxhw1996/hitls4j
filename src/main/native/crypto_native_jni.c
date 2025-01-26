@@ -1135,6 +1135,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
         return NULL;
     }
 
+    // Set DSA parameters based on key size
+    CRYPT_EAL_PkeyPara para;
+    memset(&para, 0, sizeof(para));
+    para.id = CRYPT_PKEY_DSA;
+
     // Generate key pair
     ret = CRYPT_EAL_PkeyGen(ctx);
     if (ret != CRYPT_SUCCESS) {
