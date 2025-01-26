@@ -4,24 +4,21 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <include/crypt_errno.h>
-#include <include/crypt_algid.h>
-#include "include/crypt_eal_provider.h"
-#include <include/crypt_eal_pkey.h>
-#include "include/crypt_eal_cipher.h"
-#include <include/crypt_eal_mac.h>
-#include <include/bsl_sal.h>
-#include <include/bsl_err.h>
-#include <include/crypt_eal_rand.h>
-#include <include/crypt_dsa.h>
-#include <include/bsl_params.h>
 #include <pthread.h>
 
-#include "bsl_err.h"
-#include "bsl_sal.h"
-#include "crypt_eal_md.h"
-#include "crypt_errno.h"
 #include "org_openhitls_crypto_core_CryptoNative.h"
+
+#include "crypto/crypt_errno.h"
+#include "crypto/crypt_algid.h"
+#include "crypto/crypt_eal_provider.h"
+#include "crypto/crypt_eal_pkey.h"
+#include "crypto/crypt_eal_cipher.h"
+#include "crypto/crypt_eal_mac.h"
+#include "bsl/bsl_sal.h"
+#include "bsl/bsl_err.h"
+#include "crypto/crypt_eal_rand.h"
+#include "crypto/crypt_eal_md.h"
+#include "bsl/bsl_params.h"
 
 // Exception type constants
 static const char* INVALID_KEY_EXCEPTION = "java/security/InvalidKeyException";
