@@ -2,27 +2,22 @@ package org.openhitls.crypto.jce.key;
 
 import java.math.BigInteger;
 import java.security.interfaces.DSAPublicKey;
-import java.security.spec.DSAParameterSpec;
 
-public class HiTlsDSAPublicKey implements DSAPublicKey {
+public class HiTlsDSAPublicKey extends HiTlsDSAKey implements DSAPublicKey {
     private static final long serialVersionUID = 1L;
     
-    private final BigInteger y;  // public key
-    private final DSAParameterSpec params;
+    private BigInteger y;
+    private byte[] encoded;
 
-    public HiTlsDSAPublicKey(BigInteger y, DSAParameterSpec params) {
+    public HiTlsDSAPublicKey(BigInteger p, BigInteger q, BigInteger g, BigInteger y, byte[] encoded) {
+        super(p, q, g);
         this.y = y;
-        this.params = params;
+        this.encoded = encoded;
     }
 
     @Override
     public BigInteger getY() {
         return y;
-    }
-
-    @Override
-    public DSAParameterSpec getParams() {
-        return params;
     }
 
     @Override
@@ -37,7 +32,6 @@ public class HiTlsDSAPublicKey implements DSAPublicKey {
 
     @Override
     public byte[] getEncoded() {
-        // TODO: Implement X.509 encoding
-        return null;
+        return encoded.clone();
     }
 } 

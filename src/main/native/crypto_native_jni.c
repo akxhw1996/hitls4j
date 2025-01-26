@@ -1128,17 +1128,24 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
         return NULL;
     }
 
-    // Set key size parameter using the correct control command
-    int ret = CRYPT_EAL_PkeyCtrl(ctx, CRYPT_CTRL_SET_PARAM_BY_ID, &keySize, sizeof(keySize));
+    // Set DSA parameters based on key size
+    CRYPT_EAL_PkeyPara para;
+    memset(&para, 0, sizeof(para));
+    para.id = CRYPT_PKEY_DSA;
+
+    // Set key size parameter
+    int ret = CRYPT_EAL_PkeyCtrl(ctx, CRYPT_CTRL_SET_KEYBITS, &keySize, sizeof(keySize));
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set key size", ret);
         return NULL;
     }
 
-    // Set DSA parameters based on key size
-    CRYPT_EAL_PkeyPara para;
-    memset(&para, 0, sizeof(para));
-    para.id = CRYPT_PKEY_DSA;
+    // Generate DSA parameters first
+    ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
+    if (ret != CRYPT_SUCCESS) {
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA parameters", ret);
+        return NULL;
+    }
 
     // Generate key pair
     ret = CRYPT_EAL_PkeyGen(ctx);
@@ -1307,4 +1314,145 @@ JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaVerify
     (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
 
     return (ret == CRYPT_SUCCESS) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateParameters(
+    JNIEnv *env, jclass cls, jlong context, jint keySize, jbyteArray seed) {
+    CRYPT_DsaPara para = {0};
+    jbyte *seedBytes = (*env)->GetByteArrayElements(env, seed, NULL);
+    jsize seedLen = (*env)->GetArrayLength(env, seed);
+
+    para.id = CRYPT_PKEY_DSA;
+    para.bits = keySize;
+    para.seed = (unsigned char *)seedBytes;
+    para.seedLen = seedLen;
+
+    int ret = crypt_dsa_gen_param(context, &para);
+    (*env)->ReleaseByteArrayElements(env, seed, seedBytes, JNI_ABORT);
+
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+    }
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGetParameters(
+    JNIEnv *env, jclass cls, jlong context) {
+    CRYPT_DsaPara para = {0};
+    para.id = CRYPT_PKEY_DSA;
+
+    int ret = crypt_dsa_get_param(context, &para);
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+        return NULL;
+    }
+
+    // Create array to hold p, q, g
+    jobjectArray result = (*env)->NewObjectArray(env, 3, (*env)->FindClass(env, "[B"), NULL);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    // Convert parameters to byte arrays
+    jbyteArray p = (*env)->NewByteArray(env, para.pLen);
+    jbyteArray q = (*env)->NewByteArray(env, para.qLen);
+    jbyteArray g = (*env)->NewByteArray(env, para.gLen);
+
+    if (p == NULL || q == NULL || g == NULL) {
+        return NULL;
+    }
+
+    (*env)->SetByteArrayRegion(env, p, 0, para.pLen, (jbyte *)para.p);
+    (*env)->SetByteArrayRegion(env, q, 0, para.qLen, (jbyte *)para.q);
+    (*env)->SetByteArrayRegion(env, g, 0, para.gLen, (jbyte *)para.g);
+
+    (*env)->SetObjectArrayElement(env, result, 0, p);
+    (*env)->SetObjectArrayElement(env, result, 1, q);
+    (*env)->SetObjectArrayElement(env, result, 2, g);
+
+    return result;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGetKeyValues(
+    JNIEnv *env, jclass cls, jlong context) {
+    CRYPT_DsaKey key = {0};
+    key.id = CRYPT_PKEY_DSA;
+
+    int ret = crypt_dsa_get_key(context, &key);
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+        return NULL;
+    }
+
+    // Create array to hold y (public) and x (private)
+    jobjectArray result = (*env)->NewObjectArray(env, 2, (*env)->FindClass(env, "[B"), NULL);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    // Convert key values to byte arrays
+    jbyteArray y = (*env)->NewByteArray(env, key.yLen);
+    jbyteArray x = (*env)->NewByteArray(env, key.xLen);
+
+    if (y == NULL || x == NULL) {
+        return NULL;
+    }
+
+    (*env)->SetByteArrayRegion(env, y, 0, key.yLen, (jbyte *)key.y);
+    (*env)->SetByteArrayRegion(env, x, 0, key.xLen, (jbyte *)key.x);
+
+    (*env)->SetObjectArrayElement(env, result, 0, y);
+    (*env)->SetObjectArrayElement(env, result, 1, x);
+
+    return result;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair(
+    JNIEnv *env, jclass cls, jlong context) {
+    CRYPT_DsaKey key = {0};
+    key.id = CRYPT_PKEY_DSA;
+
+    int ret = crypt_dsa_gen_key(context, &key);
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+        return NULL;
+    }
+
+    // Create array to hold public and private key encodings
+    jobjectArray result = (*env)->NewObjectArray(env, 2, (*env)->FindClass(env, "[B"), NULL);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    // Get encoded keys
+    unsigned char pubKeyBuf[4096], privKeyBuf[4096];
+    size_t pubKeyLen = sizeof(pubKeyBuf);
+    size_t privKeyLen = sizeof(privKeyBuf);
+
+    ret = crypt_dsa_encode_pubkey(context, pubKeyBuf, &pubKeyLen);
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+        return NULL;
+    }
+
+    ret = crypt_dsa_encode_privkey(context, privKeyBuf, &privKeyLen);
+    if (ret != CRYPT_SUCCESS) {
+        throwCryptoException(env, ret);
+        return NULL;
+    }
+
+    // Convert encoded keys to byte arrays
+    jbyteArray pubKey = (*env)->NewByteArray(env, pubKeyLen);
+    jbyteArray privKey = (*env)->NewByteArray(env, privKeyLen);
+
+    if (pubKey == NULL || privKey == NULL) {
+        return NULL;
+    }
+
+    (*env)->SetByteArrayRegion(env, pubKey, 0, pubKeyLen, (jbyte *)pubKeyBuf);
+    (*env)->SetByteArrayRegion(env, privKey, 0, privKeyLen, (jbyte *)privKeyBuf);
+
+    (*env)->SetObjectArrayElement(env, result, 0, pubKey);
+    (*env)->SetObjectArrayElement(env, result, 1, privKey);
+
+    return result;
 }

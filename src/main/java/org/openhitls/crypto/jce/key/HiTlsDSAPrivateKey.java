@@ -2,27 +2,22 @@ package org.openhitls.crypto.jce.key;
 
 import java.math.BigInteger;
 import java.security.interfaces.DSAPrivateKey;
-import java.security.spec.DSAParameterSpec;
 
-public class HiTlsDSAPrivateKey implements DSAPrivateKey {
+public class HiTlsDSAPrivateKey extends HiTlsDSAKey implements DSAPrivateKey {
     private static final long serialVersionUID = 1L;
     
-    private final BigInteger x;  // private key
-    private final DSAParameterSpec params;
+    private BigInteger x;
+    private byte[] encoded;
 
-    public HiTlsDSAPrivateKey(BigInteger x, DSAParameterSpec params) {
+    public HiTlsDSAPrivateKey(BigInteger p, BigInteger q, BigInteger g, BigInteger x, byte[] encoded) {
+        super(p, q, g);
         this.x = x;
-        this.params = params;
+        this.encoded = encoded;
     }
 
     @Override
     public BigInteger getX() {
         return x;
-    }
-
-    @Override
-    public DSAParameterSpec getParams() {
-        return params;
     }
 
     @Override
@@ -37,7 +32,6 @@ public class HiTlsDSAPrivateKey implements DSAPrivateKey {
 
     @Override
     public byte[] getEncoded() {
-        // TODO: Implement PKCS#8 encoding
-        return null;
+        return encoded.clone();
     }
 } 
