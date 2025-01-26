@@ -33,4 +33,13 @@ public class CryptoNative {
                                              byte[] output, int outputOffset, int[] outLen);
     public static native byte[] symmetricCipherFinal(long contextPtr);
     public static native void symmetricCipherFree(long contextPtr);
+
+    // DSA methods
+    public static native long dsaCreateContext();
+    public static native void dsaFreeContext(long context);
+    public static native byte[][] dsaGenerateKeyPair(long context, int keySize);
+    public static native void dsaSetKeys(long context, byte[] publicKey, byte[] privateKey);
+    public static native void dsaSetParameters(long context, byte[] p, byte[] q, byte[] g);
+    public static native byte[] dsaSign(long context, byte[] data, int hashAlgorithm);
+    public static native boolean dsaVerify(long context, byte[] data, byte[] signature, int hashAlgorithm);
 } 

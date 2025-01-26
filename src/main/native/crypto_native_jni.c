@@ -1096,3 +1096,163 @@ JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_symmetr
     free(outBuf);
     return finalBlock;
 }
+
+/*
+ * DSA functions
+ */
+
+JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaCreateContext
+  (JNIEnv *env, jclass cls) {
+    DSA_CTX *ctx = DSA_CTX_new();
+    if (!ctx) {
+        throwRuntimeException(env, "Failed to create DSA context");
+        return 0;
+    }
+    return (jlong)ctx;
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContext
+  (JNIEnv *env, jclass cls, jlong context) {
+    if (context) {
+        DSA_CTX_free((DSA_CTX *)context);
+    }
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
+  (JNIEnv *env, jclass cls, jlong context, jint keySize) {
+    DSA_CTX *ctx = (DSA_CTX *)context;
+    if (!ctx) {
+        throwRuntimeException(env, "Invalid DSA context");
+        return NULL;
+    }
+
+    unsigned char *pubKey = NULL;
+    unsigned char *privKey = NULL;
+    size_t pubKeyLen, privKeyLen;
+
+    if (DSA_generate_key_pair(ctx, keySize, &pubKey, &pubKeyLen, &privKey, &privKeyLen) != 1) {
+        throwRuntimeException(env, "Failed to generate DSA key pair");
+        return NULL;
+    }
+
+    // Create array to hold public and private keys
+    jclass byteArrayClass = (*env)->FindClass(env, "[B");
+    jobjectArray result = (*env)->NewObjectArray(env, 2, byteArrayClass, NULL);
+    
+    // Convert public key to byte array
+    jbyteArray pubKeyArray = (*env)->NewByteArray(env, pubKeyLen);
+    (*env)->SetByteArrayRegion(env, pubKeyArray, 0, pubKeyLen, (jbyte *)pubKey);
+    (*env)->SetObjectArrayElement(env, result, 0, pubKeyArray);
+
+    // Convert private key to byte array
+    jbyteArray privKeyArray = (*env)->NewByteArray(env, privKeyLen);
+    (*env)->SetByteArrayRegion(env, privKeyArray, 0, privKeyLen, (jbyte *)privKey);
+    (*env)->SetObjectArrayElement(env, result, 1, privKeyArray);
+
+    // Clean up
+    free(pubKey);
+    free(privKey);
+
+    return result;
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetKeys
+  (JNIEnv *env, jclass cls, jlong context, jbyteArray publicKey, jbyteArray privateKey) {
+    DSA_CTX *ctx = (DSA_CTX *)context;
+    if (!ctx) {
+        throwRuntimeException(env, "Invalid DSA context");
+        return;
+    }
+
+    jbyte *pubKeyBytes = (*env)->GetByteArrayElements(env, publicKey, NULL);
+    jbyte *privKeyBytes = privateKey ? (*env)->GetByteArrayElements(env, privateKey, NULL) : NULL;
+    jsize pubKeyLen = (*env)->GetArrayLength(env, publicKey);
+    jsize privKeyLen = privateKey ? (*env)->GetArrayLength(env, privateKey) : 0;
+
+    if (DSA_set_keys(ctx, (unsigned char *)pubKeyBytes, pubKeyLen,
+                     (unsigned char *)privKeyBytes, privKeyLen) != 1) {
+        throwRuntimeException(env, "Failed to set DSA keys");
+    }
+
+    (*env)->ReleaseByteArrayElements(env, publicKey, pubKeyBytes, JNI_ABORT);
+    if (privateKey) {
+        (*env)->ReleaseByteArrayElements(env, privateKey, privKeyBytes, JNI_ABORT);
+    }
+}
+
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParameters
+  (JNIEnv *env, jclass cls, jlong context, jbyteArray p, jbyteArray q, jbyteArray g) {
+    DSA_CTX *ctx = (DSA_CTX *)context;
+    if (!ctx) {
+        throwRuntimeException(env, "Invalid DSA context");
+        return;
+    }
+
+    jbyte *pBytes = (*env)->GetByteArrayElements(env, p, NULL);
+    jbyte *qBytes = (*env)->GetByteArrayElements(env, q, NULL);
+    jbyte *gBytes = (*env)->GetByteArrayElements(env, g, NULL);
+    jsize pLen = (*env)->GetArrayLength(env, p);
+    jsize qLen = (*env)->GetArrayLength(env, q);
+    jsize gLen = (*env)->GetArrayLength(env, g);
+
+    if (DSA_set_parameters(ctx, (unsigned char *)pBytes, pLen,
+                          (unsigned char *)qBytes, qLen,
+                          (unsigned char *)gBytes, gLen) != 1) {
+        throwRuntimeException(env, "Failed to set DSA parameters");
+    }
+
+    (*env)->ReleaseByteArrayElements(env, p, pBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, q, qBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, g, gBytes, JNI_ABORT);
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSign
+  (JNIEnv *env, jclass cls, jlong context, jbyteArray data, jint hashAlgorithm) {
+    DSA_CTX *ctx = (DSA_CTX *)context;
+    if (!ctx) {
+        throwRuntimeException(env, "Invalid DSA context");
+        return NULL;
+    }
+
+    jbyte *dataBytes = (*env)->GetByteArrayElements(env, data, NULL);
+    jsize dataLen = (*env)->GetArrayLength(env, data);
+
+    unsigned char *signature = NULL;
+    size_t sigLen;
+
+    if (DSA_sign(ctx, (unsigned char *)dataBytes, dataLen, &signature, &sigLen, hashAlgorithm) != 1) {
+        throwRuntimeException(env, "Failed to sign data");
+        (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+        return NULL;
+    }
+
+    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+
+    jbyteArray result = (*env)->NewByteArray(env, sigLen);
+    (*env)->SetByteArrayRegion(env, result, 0, sigLen, (jbyte *)signature);
+    free(signature);
+
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaVerify
+  (JNIEnv *env, jclass cls, jlong context, jbyteArray data, jbyteArray signature, jint hashAlgorithm) {
+    DSA_CTX *ctx = (DSA_CTX *)context;
+    if (!ctx) {
+        throwRuntimeException(env, "Invalid DSA context");
+        return JNI_FALSE;
+    }
+
+    jbyte *dataBytes = (*env)->GetByteArrayElements(env, data, NULL);
+    jbyte *sigBytes = (*env)->GetByteArrayElements(env, signature, NULL);
+    jsize dataLen = (*env)->GetArrayLength(env, data);
+    jsize sigLen = (*env)->GetArrayLength(env, signature);
+
+    int result = DSA_verify(ctx, (unsigned char *)dataBytes, dataLen,
+                           (unsigned char *)sigBytes, sigLen, hashAlgorithm);
+
+    (*env)->ReleaseByteArrayElements(env, data, dataBytes, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, signature, sigBytes, JNI_ABORT);
+
+    return result == 1 ? JNI_TRUE : JNI_FALSE;
+}
