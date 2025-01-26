@@ -44,4 +44,16 @@ public class HiTlsDSAPublicKey implements DSAPublicKey {
     public DSAParameterSpec getParams() {
         return new DSAParameterSpec(p, q, g);
     }
+
+    public BigInteger getP() {
+        return p;
+    }
+
+    public BigInteger getQ() {
+        return q;
+    }
+
+    public BigInteger getG() {
+        return g;
+    }
 } 

@@ -62,17 +62,9 @@ public class DSAKeyPairGenerator extends KeyPairGeneratorSpi {
 
             // Get parameters from context
             byte[][] dsaParams = CryptoNative.dsaGetParameters(context);
-            BigInteger p = new BigInteger(1, dsaParams[0]);
-            BigInteger q = new BigInteger(1, dsaParams[1]);
-            BigInteger g = new BigInteger(1, dsaParams[2]);
 
-            // Get public and private values
-            byte[][] keyValues = CryptoNative.dsaGetKeyValues(context);
-            BigInteger y = new BigInteger(1, keyValues[0]); // public value
-            BigInteger x = new BigInteger(1, keyValues[1]); // private value
-
-            PublicKey publicKey = new HiTlsDSAPublicKey(p, q, g, y, pubKeyEncoded);
-            PrivateKey privateKey = new HiTlsDSAPrivateKey(p, q, g, x, privKeyEncoded);
+            PublicKey publicKey = new HiTlsDSAPublicKey(dsaParams[0], dsaParams[1], dsaParams[2], pubKeyEncoded);
+            PrivateKey privateKey = new HiTlsDSAPrivateKey(dsaParams[0], dsaParams[1], dsaParams[2], privKeyEncoded);
 
             return new KeyPair(publicKey, privateKey);
         } finally {
