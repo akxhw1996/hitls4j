@@ -2,6 +2,7 @@ package org.openhitls.crypto.core.asymmetric;
 
 import org.openhitls.crypto.core.CryptoNative;
 import org.openhitls.crypto.core.NativeResource;
+import java.security.SecureRandom;
 
 public class DSAImpl extends NativeResource {
     private byte[] publicKey;
@@ -17,7 +18,14 @@ public class DSAImpl extends NativeResource {
         super(initContext(), CryptoNative::dsaFreeContext);
         this.keySize = keySize;
         this.hashAlgorithm = hashAlgorithm;
-        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext, keySize);
+        
+        // Set key size before generating key pair
+        byte[] seed = new byte[32];
+        new SecureRandom().nextBytes(seed);
+        CryptoNative.dsaGenerateParameters(nativeContext, keySize, seed);
+        
+        // Generate key pair
+        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext);
         setKeys(keyPair[0], keyPair[1]);
     }
 
