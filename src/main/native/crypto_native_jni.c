@@ -1129,7 +1129,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
     }
 
     // Set key size parameter using the correct control command
-    int ret = CRYPT_EAL_PkeyCtrl(ctx, CRYPT_CTRL_SET_KEYBITS, &keySize, sizeof(keySize));
+    int ret = CRYPT_EAL_PkeyCtrl(ctx, CRYPT_CTRL_SET_PARAM_BY_ID, &keySize, sizeof(keySize));
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set key size", ret);
         return NULL;
@@ -1147,6 +1147,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
     CRYPT_EAL_PkeyPrv privKey;
     memset(&pubKey, 0, sizeof(pubKey));
     memset(&privKey, 0, sizeof(privKey));
+    pubKey.id = CRYPT_PKEY_DSA;
+    privKey.id = CRYPT_PKEY_DSA;
     
     ret = CRYPT_EAL_PkeyGetPub(ctx, &pubKey);
     if (ret != CRYPT_SUCCESS) {
@@ -1192,33 +1194,33 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParamet
 
     // Set p parameter
     if (p != NULL) {
-        para.para.dsaPara.p.data = (uint8_t *)(*env)->GetByteArrayElements(env, p, NULL);
-        para.para.dsaPara.p.len = (*env)->GetArrayLength(env, p);
+        para.para.dsaPara.p = (uint8_t *)(*env)->GetByteArrayElements(env, p, NULL);
+        para.para.dsaPara.pLen = (*env)->GetArrayLength(env, p);
     }
 
     // Set q parameter
     if (q != NULL) {
-        para.para.dsaPara.q.data = (uint8_t *)(*env)->GetByteArrayElements(env, q, NULL);
-        para.para.dsaPara.q.len = (*env)->GetArrayLength(env, q);
+        para.para.dsaPara.q = (uint8_t *)(*env)->GetByteArrayElements(env, q, NULL);
+        para.para.dsaPara.qLen = (*env)->GetArrayLength(env, q);
     }
 
     // Set g parameter
     if (g != NULL) {
-        para.para.dsaPara.g.data = (uint8_t *)(*env)->GetByteArrayElements(env, g, NULL);
-        para.para.dsaPara.g.len = (*env)->GetArrayLength(env, g);
+        para.para.dsaPara.g = (uint8_t *)(*env)->GetByteArrayElements(env, g, NULL);
+        para.para.dsaPara.gLen = (*env)->GetArrayLength(env, g);
     }
 
     int32_t ret = CRYPT_EAL_PkeySetPara(ctx, &para);
 
     // Release the byte arrays
     if (p != NULL) {
-        (*env)->ReleaseByteArrayElements(env, p, (jbyte *)para.para.dsaPara.p.data, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, p, (jbyte *)para.para.dsaPara.p, JNI_ABORT);
     }
     if (q != NULL) {
-        (*env)->ReleaseByteArrayElements(env, q, (jbyte *)para.para.dsaPara.q.data, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, q, (jbyte *)para.para.dsaPara.q, JNI_ABORT);
     }
     if (g != NULL) {
-        (*env)->ReleaseByteArrayElements(env, g, (jbyte *)para.para.dsaPara.g.data, JNI_ABORT);
+        (*env)->ReleaseByteArrayElements(env, g, (jbyte *)para.para.dsaPara.g, JNI_ABORT);
     }
 
     if (ret != CRYPT_SUCCESS) {
