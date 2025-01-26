@@ -27,6 +27,7 @@ static const char* NO_SUCH_ALGORITHM_EXCEPTION = "java/security/NoSuchAlgorithmE
 static const char* ILLEGAL_STATE_EXCEPTION = "java/lang/IllegalStateException";
 static const char* ILLEGAL_ARGUMENT_EXCEPTION = "java/lang/IllegalArgumentException";
 static const char* SIGNATURE_EXCEPTION = "java/security/SignatureException";
+static const char* OUT_OF_MEMORY_ERROR = "java/lang/OutOfMemoryError";
 
 static void *StdMalloc(uint32_t len) {
     return malloc((size_t)len);
@@ -1128,23 +1129,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
         return NULL;
     }
 
-    // Set DSA parameters based on key size
-    CRYPT_EAL_PkeyPara para;
-    memset(&para, 0, sizeof(para));
-    para.id = CRYPT_PKEY_DSA;
-    para.para.dsaPara.bits = keySize;  // Set the key size in bits
-
-    // Generate parameters first
-    int ret = CRYPT_EAL_PkeyGenPara(ctx, &para);
+    // Set key size using control command
+    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA parameters", ret);
-        return NULL;
-    }
-
-    // Set the generated parameters
-    ret = CRYPT_EAL_PkeySetPara(ctx, &para);
-    if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA parameters", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
         return NULL;
     }
 
@@ -1267,23 +1255,17 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGeneratePa
         return;
     }
 
-    // Set up parameter structure
-    CRYPT_EAL_PkeyPara para;
-    memset(&para, 0, sizeof(para));
-    para.id = CRYPT_PKEY_DSA;
-    para.para.dsaPara.bits = keySize;  // Set the key size in bits
-
-    // Generate parameters
-    int ret = CRYPT_EAL_PkeyGenPara(ctx, &para);
+    // Set key size using control command
+    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA parameters", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
         return;
     }
 
-    // Set the generated parameters
-    ret = CRYPT_EAL_PkeySetPara(ctx, &para);
+    // Generate parameters
+    ret = CRYPT_EAL_PkeyGen(ctx);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA parameters", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA parameters", ret);
         return;
     }
 }
