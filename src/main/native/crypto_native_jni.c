@@ -534,65 +534,110 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_ecdsaSetUserI
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_ecdsaGenerateKeyPair
-  (JNIEnv *env, jclass cls, jlong context, jint keySize) {
-    CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
-    if (!ctx) {
-        throwException(env, ILLEGAL_STATE_EXCEPTION, "Invalid DSA context");
-        return NULL;
-    }
+  (JNIEnv *env, jclass cls, jlong nativeRef, jstring jcurveName) {
+    CRYPT_EAL_PkeyCtx *pkey = (CRYPT_EAL_PkeyCtx *)nativeRef;
+    int ret;
 
-    // Set key size parameter
-    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
-    if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set key size", ret);
-        return NULL;
+    const char *curveName = (*env)->GetStringUTFChars(env, jcurveName, NULL);
+    int curveId = getEcCurveId(curveName);
+    int keyType = (curveId == CRYPT_ECC_SM2) ? CRYPT_PKEY_SM2 : CRYPT_PKEY_ECDSA;
+
+    // Get key sizes based on curve
+    int privKeySize;
+    int pubKeySize;
+    switch (curveId) {
+        case CRYPT_ECC_SM2:
+        case CRYPT_ECC_NISTP256:
+            privKeySize = 32;  // 256 bits
+            pubKeySize = 65;   // 0x04 + 32 bytes X + 32 bytes Y
+            break;
+        case CRYPT_ECC_NISTP384:
+            privKeySize = 48;  // 384 bits
+            pubKeySize = 97;   // 0x04 + 48 bytes X + 48 bytes Y
+            break;
+        case CRYPT_ECC_NISTP521:
+            privKeySize = 66;  // 521 bits
+            pubKeySize = 133;   // 0x04 + 66 bytes X + 66 bytes Y
+            break;
+        default:
+            (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
+            throwException(env, NO_SUCH_ALGORITHM_EXCEPTION, "Unsupported curve");
+            return NULL;
     }
+    (*env)->ReleaseStringUTFChars(env, jcurveName, curveName);
 
     // Generate key pair
-    ret = CRYPT_EAL_PkeyGen(ctx);
+    ret = CRYPT_EAL_PkeyGen(pkey);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA key pair", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate key pair", ret);
         return NULL;
     }
 
-    // Get public and private keys
+    // Get public key
     CRYPT_EAL_PkeyPub pubKey;
-    CRYPT_EAL_PkeyPrv privKey;
-    memset(&pubKey, 0, sizeof(pubKey));
-    memset(&privKey, 0, sizeof(privKey));
-    pubKey.id = CRYPT_PKEY_DSA;
-    privKey.id = CRYPT_PKEY_DSA;
+    memset(&pubKey, 0, sizeof(CRYPT_EAL_PkeyPub));
+    pubKey.id = keyType;
+    pubKey.key.eccPub.data = malloc(pubKeySize);
+    pubKey.key.eccPub.len = pubKeySize;
+    if (pubKey.key.eccPub.data == NULL) {
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to allocate memory for public key");
+        return NULL;
+    }
 
-    // Get encoded public key
-    ret = CRYPT_EAL_PkeyGetPub(ctx, &pubKey);
+    ret = CRYPT_EAL_PkeyGetPub(pkey, &pubKey);
     if (ret != CRYPT_SUCCESS) {
+        free(pubKey.key.eccPub.data);
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get public key", ret);
         return NULL;
     }
 
-    // Get encoded private key
-    ret = CRYPT_EAL_PkeyGetPrv(ctx, &privKey);
+    // Get private key
+    CRYPT_EAL_PkeyPrv privKey;
+    memset(&privKey, 0, sizeof(CRYPT_EAL_PkeyPrv));
+    privKey.id = keyType;
+    privKey.key.eccPrv.data = malloc(privKeySize);
+    privKey.key.eccPrv.len = privKeySize;
+    if (privKey.key.eccPrv.data == NULL) {
+        free(pubKey.key.eccPub.data);
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to allocate memory for private key");
+        return NULL;
+    }
+
+    ret = CRYPT_EAL_PkeyGetPrv(pkey, &privKey);
     if (ret != CRYPT_SUCCESS) {
+        free(pubKey.key.eccPub.data);
+        free(privKey.key.eccPrv.data);
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get private key", ret);
         return NULL;
     }
 
-    // Create array to hold public and private keys
-    jclass byteArrayClass = (*env)->FindClass(env, "[B");
-    jobjectArray result = (*env)->NewObjectArray(env, 2, byteArrayClass, NULL);
-    if (result == NULL) {
+    // Create byte arrays for public and private keys
+    jbyteArray pubKeyArray = (*env)->NewByteArray(env, pubKey.key.eccPub.len);
+    jbyteArray privKeyArray = (*env)->NewByteArray(env, privKey.key.eccPrv.len);
+    if (pubKeyArray == NULL || privKeyArray == NULL) {
+        free(pubKey.key.eccPub.data);
+        free(privKey.key.eccPrv.data);
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to create key arrays");
         return NULL;
     }
 
-    // Convert public key to byte array
-    jbyteArray pubKeyArray = (*env)->NewByteArray(env, pubKey.key.dsaPub.len);
-    (*env)->SetByteArrayRegion(env, pubKeyArray, 0, pubKey.key.dsaPub.len, (jbyte *)pubKey.key.dsaPub.data);
-    (*env)->SetObjectArrayElement(env, result, 0, pubKeyArray);
+    (*env)->SetByteArrayRegion(env, pubKeyArray, 0, pubKey.key.eccPub.len, (jbyte *)pubKey.key.eccPub.data);
+    (*env)->SetByteArrayRegion(env, privKeyArray, 0, privKey.key.eccPrv.len, (jbyte *)privKey.key.eccPrv.data);
 
-    // Convert private key to byte array
-    jbyteArray privKeyArray = (*env)->NewByteArray(env, privKey.key.dsaPrv.len);
-    (*env)->SetByteArrayRegion(env, privKeyArray, 0, privKey.key.dsaPrv.len, (jbyte *)privKey.key.dsaPrv.data);
+    // Create array of byte arrays to return both keys
+    jobjectArray result = (*env)->NewObjectArray(env, 2, (*env)->GetObjectClass(env, pubKeyArray), NULL);
+    if (result == NULL) {
+        free(pubKey.key.eccPub.data);
+        free(privKey.key.eccPrv.data);
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to create result array");
+        return NULL;
+    }
+
+    (*env)->SetObjectArrayElement(env, result, 0, pubKeyArray);
     (*env)->SetObjectArrayElement(env, result, 1, privKeyArray);
+
+    free(pubKey.key.eccPub.data);
+    free(privKey.key.eccPrv.data);
 
     return result;
 }
