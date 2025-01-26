@@ -47,7 +47,18 @@ public final class HiTls4jProvider extends Provider {
         put("AlgorithmParameterGenerator.EC", "sun.security.ec.ECParameterGenerator");
         put("KeyAgreement.EC", "sun.security.ec.ECDHKeyAgreement");
 
-                // Register specific transformations
+        // Register DSA algorithms
+        put("KeyPairGenerator.DSA", "org.openhitls.crypto.jce.key.generator.DSAKeyPairGenerator");
+        put("KeyFactory.DSA", "org.openhitls.crypto.jce.key.factory.DSAKeyFactory");
+        put("AlgorithmParameters.DSA", "org.openhitls.crypto.jce.param.DSAParameters");
+        put("Signature.DSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA1withDSA");
+        put("Signature.SHA1withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA1withDSA");
+        put("Signature.SHA224withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA224withDSA");
+        put("Signature.SHA256withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA256withDSA");
+        put("Signature.SHA384withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA384withDSA");
+        put("Signature.SHA512withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA512withDSA");
+
+        // Register specific transformations
         // ECB mode
         put("Cipher.AES/ECB/NOPADDING", "org.openhitls.crypto.jce.HiTls4jProvider$AESCipherOidImpl AES/ECB/NOPADDING");
         put("Cipher.AES/ECB/PKCS5PADDING", "org.openhitls.crypto.jce.HiTls4jProvider$AESCipherOidImpl AES/ECB/PKCS5PADDING");
@@ -159,17 +170,5 @@ public final class HiTls4jProvider extends Provider {
         put("Alg.Alias.Curve.P-384", "secp384r1");
         put("Alg.Alias.Curve.P-521", "secp521r1");
         put("Alg.Alias.Curve.SM2", "sm2p256v1");
-
-        // Register DSA algorithms
-        put("Signature.DSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA1withDSA");
-        put("Signature.SHA1withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA1withDSA");
-        put("Signature.SHA224withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA224withDSA");
-        put("Signature.SHA256withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA256withDSA");
-        put("Signature.SHA384withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA384withDSA");
-        put("Signature.SHA512withDSA", "org.openhitls.crypto.jce.signer.DSASigner$SHA512withDSA");
-
-        put("KeyPairGenerator.DSA", "org.openhitls.crypto.jce.keypair.DSAKeyPairGenerator");
-        put("KeyFactory.DSA", "org.openhitls.crypto.jce.keyfactory.DSAKeyFactory");
-        put("AlgorithmParameters.DSA", "org.openhitls.crypto.jce.params.DSAParameters");
     }
 }
