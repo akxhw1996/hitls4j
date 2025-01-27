@@ -50,16 +50,20 @@ public class DSAImpl extends NativeResource {
         CryptoNative.dsaSetKeys(nativeContext, publicKey, privateKey);
     }
 
-    public void setParameters(byte[] p, byte[] q, byte[] g) {
-        CryptoNative.dsaSetParameters(nativeContext, p, q, g);
-    }
-
     public byte[] getPublicKey() {
-        return publicKey != null ? publicKey.clone() : null;
+        return publicKey;
     }
 
     public byte[] getPrivateKey() {
-        return privateKey != null ? privateKey.clone() : null;
+        return privateKey;
+    }
+
+    public long getNativeContext() {
+        return nativeContext;
+    }
+
+    public void setParameters(byte[] p, byte[] q, byte[] g) {
+        CryptoNative.dsaSetParameters(nativeContext, p, q, g);
     }
 
     /**
