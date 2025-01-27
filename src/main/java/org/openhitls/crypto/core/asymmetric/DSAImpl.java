@@ -34,7 +34,7 @@ public class DSAImpl extends NativeResource {
         CryptoNative.dsaSetParameters(nativeContext, params[0], params[1], params[2]);
         
         // Generate key pair
-        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext, keySize);
+        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext);
         if (keyPair == null || keyPair.length != 2) {
             throw new IllegalStateException("Failed to generate DSA key pair");
         }

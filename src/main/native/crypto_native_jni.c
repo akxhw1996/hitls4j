@@ -1122,7 +1122,7 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContex
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
-  (JNIEnv *env, jclass cls, jlong context, jint keySize) {
+  (JNIEnv *env, jclass cls, jlong context) {
     printf("[DEBUG] Entering dsaGenerateKeyPair\n");
     
     CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
@@ -1238,8 +1238,8 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParamet
 }
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateParameters
-  (JNIEnv *env, jclass cls, jlong context, jint keySize, jbyteArray seed) {
-    printf("[DEBUG] Entering dsaGenerateParameters with keySize: %d\n", keySize);
+  (JNIEnv *env, jclass cls, jlong context, jbyteArray seed) {
+    printf("[DEBUG] Entering dsaGenerateParameters\n");
     
     CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
     if (!ctx) {
@@ -1251,7 +1251,6 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGeneratePa
     // Create parameter structure
     CRYPT_EAL_PkeyPara para = {0};
     para.id = CRYPT_PKEY_DSA;
-    para.para.dsaPara.keySize = keySize;
 
     // Set key size and initial parameters
     printf("[DEBUG] Setting initial parameters\n");
