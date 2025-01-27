@@ -19,13 +19,25 @@ public class DSAImpl extends NativeResource {
         this.keySize = keySize;
         this.hashAlgorithm = hashAlgorithm;
         
-        // Set key size before generating key pair
+        // First generate parameters
         byte[] seed = new byte[32];
         new SecureRandom().nextBytes(seed);
         CryptoNative.dsaGenerateParameters(nativeContext, keySize, seed);
         
+        // Get generated parameters
+        byte[][] params = CryptoNative.dsaGetParameters(nativeContext);
+        if (params == null || params.length != 3) {
+            throw new IllegalStateException("Failed to get DSA parameters");
+        }
+        
+        // Set parameters
+        CryptoNative.dsaSetParameters(nativeContext, params[0], params[1], params[2]);
+        
         // Generate key pair
-        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext);
+        byte[][] keyPair = CryptoNative.dsaGenerateKeyPair(nativeContext, keySize);
+        if (keyPair == null || keyPair.length != 2) {
+            throw new IllegalStateException("Failed to generate DSA key pair");
+        }
         setKeys(keyPair[0], keyPair[1]);
     }
 

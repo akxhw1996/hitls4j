@@ -1123,7 +1123,7 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContex
 
 JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
   (JNIEnv *env, jclass cls, jlong context, jint keySize) {
-    printf("[DEBUG] Entering dsaGenerateKeyPair with keySize: %d\n", keySize);
+    printf("[DEBUG] Entering dsaGenerateKeyPair\n");
     
     CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
     if (!ctx) {
@@ -1132,18 +1132,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
         return NULL;
     }
 
-    // Set key size using CRYPT_EAL_PkeySetParaById
-    printf("[DEBUG] Calling CRYPT_EAL_PkeySetParaById with keySize: %d\n", keySize);
-    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
-    printf("[DEBUG] CRYPT_EAL_PkeySetParaById returned: %d\n", ret);
-    if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
-        return NULL;
-    }
-
     // Generate key pair
     printf("[DEBUG] Calling CRYPT_EAL_PkeyGen\n");
-    ret = CRYPT_EAL_PkeyGen(ctx);
+    int ret = CRYPT_EAL_PkeyGen(ctx);
     printf("[DEBUG] CRYPT_EAL_PkeyGen returned: %d\n", ret);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA key pair", ret);
@@ -1248,20 +1239,30 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParamet
 
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateParameters
   (JNIEnv *env, jclass cls, jlong context, jint keySize, jbyteArray seed) {
+    printf("[DEBUG] Entering dsaGenerateParameters with keySize: %d\n", keySize);
+    
     CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
     if (!ctx) {
+        printf("[DEBUG] Invalid DSA context (null)\n");
         throwException(env, ILLEGAL_STATE_EXCEPTION, "Invalid DSA context");
         return;
     }
 
-    // Set key size using control command
-    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
+    // Create parameter structure
+    CRYPT_EAL_PkeyPara para = {0};
+    para.id = CRYPT_PKEY_DSA;
+    para.para.dsaPara.keySize = keySize;
+
+    // Set key size and initial parameters
+    printf("[DEBUG] Setting initial parameters\n");
+    int ret = CRYPT_EAL_PkeySetPara(ctx, &para);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set initial DSA parameters", ret);
         return;
     }
 
     // Generate parameters
+    printf("[DEBUG] Generating parameters\n");
     ret = CRYPT_EAL_PkeyGen(ctx);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA parameters", ret);
