@@ -196,13 +196,13 @@ JNIEXPORT jlong JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaCreateCon
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContext
   (JNIEnv *, jclass, jlong);
 
-/*
- * Class:     org_openhitls_crypto_core_CryptoNative
- * Method:    dsaGenerateKeyPair
- * Signature: (JI)[[B
- */
-JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
-  (JNIEnv *, jclass, jlong, jint);
+// /*
+//  * Class:     org_openhitls_crypto_core_CryptoNative
+//  * Method:    dsaGenerateKeyPair
+//  * Signature: (JI)[[B
+//  */
+// JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
+//   (JNIEnv *, jclass, jlong, jint);
 
 /*
  * Class:     org_openhitls_crypto_core_CryptoNative
@@ -212,13 +212,32 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
 JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetKeys
   (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray);
 
+
 /*
  * Class:     org_openhitls_crypto_core_CryptoNative
- * Method:    dsaSetParameters
- * Signature: (J[B[B[B)V
+ * Method:    dsaGenerateKeyPair
+ * Signature: (J)[[B
  */
-JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParameters
-  (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jbyteArray);
+JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_openhitls_crypto_core_CryptoNative
+ * Method:    dsaGenerateParameters
+ * Signature: (JI[B)V
+ */
+JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateParameters
+  (JNIEnv *, jclass, jlong, jint, jbyteArray);
+
+
+
+// /*
+//  * Class:     org_openhitls_crypto_core_CryptoNative
+//  * Method:    dsaSetParameters
+//  * Signature: (J[B[B[B)V
+//  */
+// JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaSetParameters
+//   (JNIEnv *, jclass, jlong, jbyteArray, jbyteArray, jbyteArray);
 
 /*
  * Class:     org_openhitls_crypto_core_CryptoNative
