@@ -1129,26 +1129,35 @@ JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGe
         return NULL;
     }
 
-    // Set key size using CRYPT_EAL_PkeyPara
-    CRYPT_EAL_PkeyPara para = {0};
-    para.id = CRYPT_PKEY_DSA;
-    para.para.dsaPara.keyBits = keySize;
-
-    int ret = CRYPT_EAL_PkeySetPara(ctx, &para);
+    // Set key size using CRYPT_EAL_PkeySetParaById
+    int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
         return NULL;
     }
 
     // Generate key pair
+    ret = CRYPT_EAL_PkeyGen(ctx);
+    if (ret != CRYPT_SUCCESS) {
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA key pair", ret);
+        return NULL;
+    }
+
+    // Get public and private key values
     CRYPT_EAL_PkeyPub pub = {0};
     CRYPT_EAL_PkeyPrv prv = {0};
     pub.id = CRYPT_PKEY_DSA;
     prv.id = CRYPT_PKEY_DSA;
 
-    ret = CRYPT_EAL_PkeyGen(ctx, &pub, &prv);
+    ret = CRYPT_EAL_PkeyGetPub(ctx, &pub);
     if (ret != CRYPT_SUCCESS) {
-        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA key pair", ret);
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get DSA public key", ret);
+        return NULL;
+    }
+
+    ret = CRYPT_EAL_PkeyGetPrv(ctx, &prv);
+    if (ret != CRYPT_SUCCESS) {
+        throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get DSA private key", ret);
         return NULL;
     }
 
