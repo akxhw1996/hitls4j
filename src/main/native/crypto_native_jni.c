@@ -1123,74 +1123,75 @@ JNIEXPORT void JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaFreeContex
 
 JNIEXPORT jobjectArray JNICALL Java_org_openhitls_crypto_core_CryptoNative_dsaGenerateKeyPair
   (JNIEnv *env, jclass cls, jlong context, jint keySize) {
+    printf("[DEBUG] Entering dsaGenerateKeyPair with keySize: %d\n", keySize);
+    
     CRYPT_EAL_PkeyCtx *ctx = (CRYPT_EAL_PkeyCtx *)context;
     if (!ctx) {
+        printf("[DEBUG] Invalid DSA context (null)\n");
         throwException(env, ILLEGAL_STATE_EXCEPTION, "Invalid DSA context");
         return NULL;
     }
 
     // Set key size using CRYPT_EAL_PkeySetParaById
+    printf("[DEBUG] Calling CRYPT_EAL_PkeySetParaById with keySize: %d\n", keySize);
     int ret = CRYPT_EAL_PkeySetParaById(ctx, keySize);
+    printf("[DEBUG] CRYPT_EAL_PkeySetParaById returned: %d\n", ret);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to set DSA key size", ret);
         return NULL;
     }
 
     // Generate key pair
+    printf("[DEBUG] Calling CRYPT_EAL_PkeyGen\n");
     ret = CRYPT_EAL_PkeyGen(ctx);
+    printf("[DEBUG] CRYPT_EAL_PkeyGen returned: %d\n", ret);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to generate DSA key pair", ret);
         return NULL;
     }
 
     // Get public and private key values
+    printf("[DEBUG] Getting public and private keys\n");
     CRYPT_EAL_PkeyPub pub = {0};
     CRYPT_EAL_PkeyPrv prv = {0};
     pub.id = CRYPT_PKEY_DSA;
     prv.id = CRYPT_PKEY_DSA;
 
     ret = CRYPT_EAL_PkeyGetPub(ctx, &pub);
+    printf("[DEBUG] CRYPT_EAL_PkeyGetPub returned: %d\n", ret);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get DSA public key", ret);
         return NULL;
     }
 
     ret = CRYPT_EAL_PkeyGetPrv(ctx, &prv);
+    printf("[DEBUG] CRYPT_EAL_PkeyGetPrv returned: %d\n", ret);
     if (ret != CRYPT_SUCCESS) {
         throwExceptionWithError(env, ILLEGAL_STATE_EXCEPTION, "Failed to get DSA private key", ret);
         return NULL;
     }
 
     // Create byte arrays for public and private keys
+    printf("[DEBUG] Creating Java byte arrays for keys (pub len: %d, prv len: %d)\n", pub.key.dsaPub.len, prv.key.dsaPrv.len);
     jbyteArray pubArray = (*env)->NewByteArray(env, pub.key.dsaPub.len);
-    if (!pubArray) {
-        throwException(env, OUT_OF_MEMORY_ERROR, "Failed to allocate memory for public key");
-        return NULL;
-    }
-    (*env)->SetByteArrayRegion(env, pubArray, 0, pub.key.dsaPub.len, (jbyte *)pub.key.dsaPub.data);
-
     jbyteArray prvArray = (*env)->NewByteArray(env, prv.key.dsaPrv.len);
-    if (!prvArray) {
-        (*env)->DeleteLocalRef(env, pubArray);
-        throwException(env, OUT_OF_MEMORY_ERROR, "Failed to allocate memory for private key");
+    if (pubArray == NULL || prvArray == NULL) {
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to create key arrays");
         return NULL;
     }
+
+    (*env)->SetByteArrayRegion(env, pubArray, 0, pub.key.dsaPub.len, (jbyte *)pub.key.dsaPub.data);
     (*env)->SetByteArrayRegion(env, prvArray, 0, prv.key.dsaPrv.len, (jbyte *)prv.key.dsaPrv.data);
 
     // Create array to hold both keys
     jobjectArray result = (*env)->NewObjectArray(env, 2, (*env)->GetObjectClass(env, pubArray), NULL);
-    if (!result) {
-        (*env)->DeleteLocalRef(env, pubArray);
-        (*env)->DeleteLocalRef(env, prvArray);
-        throwException(env, OUT_OF_MEMORY_ERROR, "Failed to allocate memory for result array");
+    if (result == NULL) {
+        throwException(env, ILLEGAL_STATE_EXCEPTION, "Failed to create result array");
         return NULL;
     }
 
     (*env)->SetObjectArrayElement(env, result, 0, pubArray);
     (*env)->SetObjectArrayElement(env, result, 1, prvArray);
-
-    (*env)->DeleteLocalRef(env, pubArray);
-    (*env)->DeleteLocalRef(env, prvArray);
 
     return result;
 }
