@@ -65,17 +65,21 @@ public class DSAKeyPairGenerator extends KeyPairGeneratorSpi {
                 dsaImpl = new DSAImpl(keySize);
             }
             
-            // Get the parameters and keys
+            // Get the keys from DSAImpl
+            byte[] publicKey = dsaImpl.getPublicKey();
+            byte[] privateKey = dsaImpl.getPrivateKey();
+            
+            // Get the parameters
             byte[][] params = CryptoNative.dsaGetParameters(dsaImpl.getNativeContext());
             if (params == null || params.length != 3) {
                 throw new RuntimeException("Failed to get DSA parameters");
             }
 
             // Create the public and private key objects
-            HiTlsDSAPublicKey publicKey = new HiTlsDSAPublicKey(params[0], params[1], params[2], dsaImpl.getPublicKey());
-            HiTlsDSAPrivateKey privateKey = new HiTlsDSAPrivateKey(params[0], params[1], params[2], dsaImpl.getPrivateKey());
+            HiTlsDSAPublicKey publicKeyObj = new HiTlsDSAPublicKey(params[0], params[1], params[2], publicKey);
+            HiTlsDSAPrivateKey privateKeyObj = new HiTlsDSAPrivateKey(params[0], params[1], params[2], privateKey);
 
-            return new KeyPair(publicKey, privateKey);
+            return new KeyPair(publicKeyObj, privateKeyObj);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to generate DSA key pair: " + e.getMessage(), e);
         }
